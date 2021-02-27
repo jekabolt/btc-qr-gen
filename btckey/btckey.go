@@ -1,24 +1,53 @@
-/* btckeygenie v1.0.0
- * https://github.com/vsergeev/btckeygenie
- * License: MIT
- */
-
 package btckey
 
 import (
 	"bytes"
-	"golang.org/x/crypto/ripemd160"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"math/big"
 	"strings"
+
+	"golang.org/x/crypto/ripemd160"
 )
 
-/******************************************************************************/
-/* ECDSA Keypair Generation */
-/******************************************************************************/
+type BTCKeyPair struct {
+	AddressCompressed           string
+	PublicKeyBytesCompressed    []byte
+	PublicKeyB64Compressed      string
+	AddressUncompressed         string
+	PublicKeyBytesUncompressed  []byte
+	PublicKeyBase64Uncompressed string
+	PrivateKeyWIFCCompressed    string
+	PrivateKeyWIFUncompressed   string
+	PrivateKeyBytes             []byte
+	PrivateKeyBase64            string
+}
 
+func GenerateBTCKeyPair() (*BTCKeyPair, error) {
+	priv, err := GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("GenerateBTCKeyPair:GenerateKey [%v]", err.Error())
+	}
+
+	return &BTCKeyPair{
+		AddressCompressed:           priv.ToAddress(),
+		PublicKeyBytesCompressed:    priv.PublicKey.ToBytes(),
+		PublicKeyB64Compressed:      base64.StdEncoding.EncodeToString(priv.PublicKey.ToBytes()),
+		AddressUncompressed:         priv.ToAddressUncompressed(),
+		PublicKeyBytesUncompressed:  priv.PublicKey.ToBytesUncompressed(),
+		PublicKeyBase64Uncompressed: base64.StdEncoding.EncodeToString(priv.PublicKey.ToBytesUncompressed()),
+		PrivateKeyWIFCCompressed:    priv.ToWIFC(),
+		PrivateKeyWIFUncompressed:   priv.ToWIF(),
+		PrivateKeyBytes:             priv.ToBytes(),
+		PrivateKeyBase64:            base64.StdEncoding.EncodeToString(priv.ToBytes()),
+	}, nil
+
+}
+
+// ECDSA Keypair Generation
 var secp256k1 EllipticCurve
 
 func init() {
@@ -44,7 +73,7 @@ type PrivateKey struct {
 	D *big.Int
 }
 
-func NewPrivateKey(d *big.Int) (*PrivateKey) {
+func NewPrivateKey(d *big.Int) *PrivateKey {
 	key := &PrivateKey{D: d}
 	key.derive()
 	return key

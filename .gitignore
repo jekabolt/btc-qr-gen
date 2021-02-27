@@ -1,0 +1,8 @@
+vendor
+.DS_Store
+/bin
+.env
+vendor
+.vscode
+/templates/secret.json
+*secret.json

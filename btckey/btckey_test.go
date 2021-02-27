@@ -1,14 +1,10 @@
-/* btckeygenie v1.0.0
- * https://github.com/vsergeev/btckeygenie
- * License: MIT
- */
-
 package btckey
 
 import (
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 )
@@ -114,8 +110,8 @@ func TestBase58Check(t *testing.T) {
 
 	/* Test base-58 check decoding of invalid strings */
 	b58CheckInvalidVectors := []string{
-		"5T3IW5p", // Invalid base58
-		"6wi",     // Missing checksum
+		"5T3IW5p",                          // Invalid base58
+		"6wi",                              // Missing checksum
 		"6UwLL9Risc3QfPqBUvKofHmBQ7wMtjzm", // Invalid checksum
 	}
 
@@ -495,4 +491,10 @@ func TestGenerateKey(t *testing.T) {
 	}
 
 	t.Log("success GenerateKey()")
+}
+
+func TestGenerateBTCKeyPair(t *testing.T) {
+	kp, err := GenerateBTCKeyPair()
+	fmt.Printf("kp %+v", kp)
+	fmt.Println("err ", err)
 }
