@@ -1,10 +1,9 @@
 package server
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"time"
+	"log"
 
 	"github.com/vsergeev/btckeygenie/btckey"
 	bolt "go.etcd.io/bbolt"
@@ -12,46 +11,60 @@ import (
 
 type KeyPair struct {
 	*btckey.BTCKeyPair
-	Id             int
-	InitiationTime int64
-	Payed          bool
+	InitiationTime int64 `json:"initiationTime,omitempty"`
+	Payed          bool  `json:"payed,omitempty"`
 }
 
-func (s *Server) createBucket(bucketName string) error {
+func (s *Server) updateDB(bucketName, key []byte, value interface{}) error {
+	bs, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("updateDB:json.Marsha: ", err.Error())
+	}
 	return s.DB.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucket([]byte(bucketName))
+		bkt, err := tx.CreateBucketIfNotExists(bucketName)
 		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
+			return err
+		}
+		err = bkt.Put(key, bs)
+		if err != nil {
+			return err
 		}
 		return nil
 	})
 }
 
-func (s *Server) addKeyPair(k *btckey.BTCKeyPair) error {
-	return s.DB.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(s.KeysBucket))
+func (s *Server) queryDB(bucketName, key []byte) ([]byte, error) {
+	v := []byte{}
+	err := s.DB.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(bucketName)
+		if bkt == nil {
+			return fmt.Errorf("bucket %s not found", bucketName)
+		}
+		v = bkt.Get(key)
+		return nil
+	})
+	return v, err
+}
 
-		id, err := b.NextSequence()
-		if err != nil {
-			return err
+func (s *Server) iterateDB(bucketName []byte) error {
+	return s.DB.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketName)
+		c := b.Cursor()
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			fmt.Printf("k =[%s], v=[%s]\n", k, v)
 		}
-
-		kp := KeyPair{
-			BTCKeyPair:     k,
-			Id:             int(id),
-			InitiationTime: time.Now().Unix(),
-		}
-		buf, err := json.Marshal(kp)
-		if err != nil {
-			return err
-		}
-		return b.Put(itob(kp.Id), buf)
+		return nil
 	})
 }
 
-// itob returns an 8-byte big endian representation of v.
-func itob(v int) []byte {
-	b := make([]byte, 8)
-	binary.BigEndian.PutUint64(b, uint64(v))
-	return b
+func (s *Server) deleteKey(bucketName, keyName []byte) {
+	err := s.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketName)
+		err := b.Delete(keyName)
+		return err
+	})
+
+	if err != nil {
+		log.Fatalf("failure : %s\n", err)
+	}
 }

@@ -14,16 +14,16 @@ import (
 )
 
 type BTCKeyPair struct {
-	AddressCompressed           string
-	PublicKeyBytesCompressed    []byte
-	PublicKeyB64Compressed      string
-	AddressUncompressed         string
-	PublicKeyBytesUncompressed  []byte
-	PublicKeyBase64Uncompressed string
-	PrivateKeyWIFCCompressed    string
-	PrivateKeyWIFUncompressed   string
-	PrivateKeyBytes             []byte
-	PrivateKeyBase64            string
+	AddressCompressed           string `json:"addressCompressed,omitempty"`
+	PublicKeyBytesCompressed    []byte `json:"publicKeyBytesCompressed,omitempty"`
+	PublicKeyB64Compressed      string `json:"publicKeyB64Compressed,omitempty"`
+	AddressUncompressed         string `json:"addressUncompressed,omitempty"`
+	PublicKeyBytesUncompressed  []byte `json:"publicKeyBytesUncompressed,omitempty"`
+	PublicKeyBase64Uncompressed string `json:"publicKeyBase64Uncompressed,omitempty"`
+	PrivateKeyWIFCCompressed    string `json:"privateKeyWIFCCompressed,omitempty"`
+	PrivateKeyWIFUncompressed   string `json:"privateKeyWIFUncompressed,omitempty"`
+	PrivateKeyBytes             []byte `json:"privateKeyBytes,omitempty"`
+	PrivateKeyBase64            string `json:"privateKeyBase64,omitempty"`
 }
 
 func GenerateBTCKeyPair() (*BTCKeyPair, error) {
