@@ -18,7 +18,7 @@ type Server struct {
 type Config struct {
 	Port       string `env:"SERVER_PORT" envDefault:"8080"`
 	XAPIKey    string `env:"X_API_KEY" envDefault:"kek"`
-	AddressTTL string `env:"ADDRESS_TTL" envDefault:"kek"`
+	AddressTTL int    `env:"ADDRESS_TTL" envDefault:"10"` // min
 	DBPath     string `env:"DB_PATH" envDefault:"keys.db"`
 	KeysBucket string `env:"KEYS_BUCKET" envDefault:"keys"`
 	Debug      bool   `env:"DEBUG" envDefault:"true"`
@@ -40,7 +40,5 @@ func (c *Config) InitServer() (*Server, error) {
 		DB:         db,
 		HTTPClient: request.NewHTTPClient(r),
 	}
-
-	s.createBucket(c.KeysBucket)
 	return s, nil
 }
