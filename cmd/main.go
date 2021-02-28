@@ -20,6 +20,8 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("InitServer failed")
 	}
+	defer s.DB.Close()
+
 	err = s.Serve()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Run failed")

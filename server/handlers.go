@@ -32,6 +32,13 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+	err = s.addKeyPair(btcKp)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:addKeyPair:[%s]", err.Error())
+		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
 	// TODO: save
 	message := chi.URLParam(r, "meta")
 	amount := chi.URLParam(r, "amount")
@@ -41,7 +48,10 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	writeImage(w, png)
+	err = writeImage(w, png)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:writeImage:[%s]", err.Error())
+	}
 }
 
 func (s *Server) xAPICheckMiddleware(next http.Handler) http.Handler {
