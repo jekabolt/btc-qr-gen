@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/miapago/report-server/request"
+	"github.com/go-resty/resty/v2"
+	"github.com/vsergeev/btckeygenie/request"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -33,10 +34,13 @@ func (c *Config) InitServer() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("InitServer:bolt.Open [%v]", err.Error())
 	}
+	r := resty.New()
 	s := &Server{
-		Config: c,
-		DB:     db,
+		Config:     c,
+		DB:         db,
+		HTTPClient: request.NewHTTPClient(r),
 	}
+
 	s.createBucket(c.KeysBucket)
 	return s, nil
 }
