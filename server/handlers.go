@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -27,11 +28,17 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
+	meta := chi.URLParam(r, "meta")
+	amount := chi.URLParam(r, "amount")
+	pi, err := decodePaymentInfo(meta)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:decodePaymentInfo:[%s]", err.Error())
+		writeBadRequest(w)
+	}
 	btckp, err := btckey.GenerateBTCKeyPair()
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:GenerateBTCKeyPair:[%s]", err.Error())
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		w.WriteHeader(http.StatusInternalServerError)
+		writeInternalServerError(w)
 	}
 	err = s.updateDB([]byte(s.KeysBucket),
 		[]byte(btckp.AddressCompressed),
@@ -40,21 +47,25 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 			InitiationTime: time.Now().Unix(),
 			Payed:          false,
 		})
-
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:addKeyPair:[%s]", err.Error())
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		w.WriteHeader(http.StatusInternalServerError)
+
+	}
+	err = s.updateDB([]byte(s.OrdersBucket),
+		[]byte(btckp.AddressCompressed), pi)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:addPaymentInfo:[%s]", err.Error())
+		writeInternalServerError(w)
 	}
 
-	// TODO: save
-	message := chi.URLParam(r, "meta")
-	amount := chi.URLParam(r, "amount")
-	png, err := qrcode.Encode(fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, message), qrcode.Medium, 256)
+	ctx, _ := context.WithCancel(context.Background())
+	s.watchAddress(ctx, btckp.AddressCompressed)
+
+	qrData := fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, meta)
+	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:qrcode.Encode:[%s]", err.Error())
-		w.Write([]byte(http.StatusText(http.StatusInternalServerError)))
-		w.WriteHeader(http.StatusInternalServerError)
+		writeInternalServerError(w)
 	}
 	err = writeImage(w, png)
 	if err != nil {
