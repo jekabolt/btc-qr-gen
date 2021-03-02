@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/vsergeev/btckeygenie/btckey"
 	bolt "go.etcd.io/bbolt"
@@ -18,7 +17,7 @@ type KeyPair struct {
 func (s *Server) updateDB(bucketName, key []byte, value interface{}) error {
 	bs, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("updateDB:json.Marsha: ", err.Error())
+		return fmt.Errorf("updateDB:json.Marsha:%v", err.Error())
 	}
 	return s.DB.Update(func(tx *bolt.Tx) error {
 		bkt, err := tx.CreateBucketIfNotExists(bucketName)
@@ -43,6 +42,9 @@ func (s *Server) queryDB(bucketName, key []byte) ([]byte, error) {
 		v = bkt.Get(key)
 		return nil
 	})
+	if len(v) == 0 {
+		return nil, fmt.Errorf("queryDB:notfound")
+	}
 	return v, err
 }
 
@@ -57,14 +59,10 @@ func (s *Server) iterateDB(bucketName []byte) error {
 	})
 }
 
-func (s *Server) deleteKey(bucketName, keyName []byte) {
-	err := s.DB.Update(func(tx *bolt.Tx) error {
+func (s *Server) deleteKey(bucketName, keyName []byte) error {
+	return s.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketName)
 		err := b.Delete(keyName)
 		return err
 	})
-
-	if err != nil {
-		log.Fatalf("failure : %s\n", err)
-	}
 }
