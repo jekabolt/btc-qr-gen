@@ -22,7 +22,7 @@ type Config struct {
 	AddressTTL   int    `env:"ADDRESS_TTL" envDefault:"15"` // min
 	DBPath       string `env:"DB_PATH" envDefault:"payments.db"`
 	KeysBucket   string `env:"KEYS_BUCKET" envDefault:"keys"`
-	OrdersBucket string `env:"KEYS_BUCKET" envDefault:"orders"`
+	OrdersBucket string `env:"ORDERS_BUCKET" envDefault:"orders"`
 	Debug        bool   `env:"DEBUG" envDefault:"true"`
 }
 

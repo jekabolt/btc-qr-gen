@@ -27,22 +27,22 @@ type BTCKeyPair struct {
 }
 
 func GenerateBTCKeyPair() (*BTCKeyPair, error) {
-	priv, err := GenerateKey(rand.Reader)
+	priv, err := generateKey(rand.Reader)
 	if err != nil {
-		return nil, fmt.Errorf("GenerateBTCKeyPair:GenerateKey [%v]", err.Error())
+		return nil, fmt.Errorf("GenerateBTCKeyPair:generateKey [%v]", err.Error())
 	}
 
 	return &BTCKeyPair{
-		AddressCompressed:           priv.ToAddress(),
-		PublicKeyBytesCompressed:    priv.PublicKey.ToBytes(),
-		PublicKeyB64Compressed:      base64.StdEncoding.EncodeToString(priv.PublicKey.ToBytes()),
-		AddressUncompressed:         priv.ToAddressUncompressed(),
-		PublicKeyBytesUncompressed:  priv.PublicKey.ToBytesUncompressed(),
-		PublicKeyBase64Uncompressed: base64.StdEncoding.EncodeToString(priv.PublicKey.ToBytesUncompressed()),
-		PrivateKeyWIFCCompressed:    priv.ToWIFC(),
+		AddressCompressed:           priv.toAddress(),
+		PublicKeyBytesCompressed:    priv.PublicKey.toBytes(),
+		PublicKeyB64Compressed:      base64.StdEncoding.EncodeToString(priv.PublicKey.toBytes()),
+		AddressUncompressed:         priv.toAddressUncompressed(),
+		PublicKeyBytesUncompressed:  priv.PublicKey.toBytesUncompressed(),
+		PublicKeyBase64Uncompressed: base64.StdEncoding.EncodeToString(priv.PublicKey.toBytesUncompressed()),
+		PrivateKeyWIFCCompressed:    priv.toWIFC(),
 		PrivateKeyWIFUncompressed:   priv.ToWIF(),
-		PrivateKeyBytes:             priv.ToBytes(),
-		PrivateKeyBase64:            base64.StdEncoding.EncodeToString(priv.ToBytes()),
+		PrivateKeyBytes:             priv.toBytes(),
+		PrivateKeyBase64:            base64.StdEncoding.EncodeToString(priv.toBytes()),
 	}, nil
 
 }
@@ -73,7 +73,7 @@ type PrivateKey struct {
 	D *big.Int
 }
 
-func NewPrivateKey(d *big.Int) *PrivateKey {
+func newPrivateKey(d *big.Int) *PrivateKey {
 	key := &PrivateKey{D: d}
 	key.derive()
 	return key
@@ -97,8 +97,8 @@ func (priv *PrivateKey) derive() (pub *PublicKey) {
 	return &priv.PublicKey
 }
 
-// GenerateKey generates a public and private key pair using random source rand.
-func GenerateKey(rand io.Reader) (priv PrivateKey, err error) {
+// generateKey generates a public and private key pair using random source rand.
+func generateKey(rand io.Reader) (priv PrivateKey, err error) {
 	/* See Certicom's SEC1 3.2.1, pg.23 */
 	/* See NSA's Suite B Implementer’s Guide to FIPS 186-3 (ECDSA) A.1.1, pg.18 */
 
@@ -275,8 +275,8 @@ func b58checkdecode(s string) (ver uint8, b []byte, err error) {
 /* Bitcoin Private Key Import/Export */
 /******************************************************************************/
 
-// CheckWIF checks that string wif is a valid Wallet Import Format or Wallet Import Format Compressed string. If it is not, err is populated with the reason.
-func CheckWIF(wif string) (valid bool, err error) {
+// checkWIF checks that string wif is a valid Wallet Import Format or Wallet Import Format Compressed string. If it is not, err is populated with the reason.
+func checkWIF(wif string) (valid bool, err error) {
 	/* See https://en.bitcoin.it/wiki/Wallet_import_format */
 
 	/* Base58 Check Decode the WIF string */
@@ -303,8 +303,8 @@ func CheckWIF(wif string) (valid bool, err error) {
 	return true, nil
 }
 
-// ToBytes converts a Bitcoin private key to a 32-byte byte slice.
-func (priv *PrivateKey) ToBytes() (b []byte) {
+// toBytes converts a Bitcoin private key to a 32-byte byte slice.
+func (priv *PrivateKey) toBytes() (b []byte) {
 	d := priv.D.Bytes()
 
 	/* Pad D to 32 bytes */
@@ -313,8 +313,8 @@ func (priv *PrivateKey) ToBytes() (b []byte) {
 	return padded_d
 }
 
-// FromBytes converts a 32-byte byte slice to a Bitcoin private key and derives the corresponding Bitcoin public key.
-func (priv *PrivateKey) FromBytes(b []byte) (err error) {
+// fromBytes converts a 32-byte byte slice to a Bitcoin private key and derives the corresponding Bitcoin public key.
+func (priv *PrivateKey) fromBytes(b []byte) (err error) {
 	if len(b) != 32 {
 		return fmt.Errorf("Invalid private key bytes length %d, expected 32.", len(b))
 	}
@@ -332,7 +332,7 @@ func (priv *PrivateKey) ToWIF() (wif string) {
 	/* See https://en.bitcoin.it/wiki/Wallet_import_format */
 
 	/* Convert the private key to bytes */
-	priv_bytes := priv.ToBytes()
+	priv_bytes := priv.toBytes()
 
 	/* Convert bytes to base-58 check encoded string with version 0x80 */
 	wif = b58checkencode(0x80, priv_bytes)
@@ -340,12 +340,12 @@ func (priv *PrivateKey) ToWIF() (wif string) {
 	return wif
 }
 
-// ToWIFC converts a Bitcoin private key to a Wallet Import Format string with the public key compressed flag.
-func (priv *PrivateKey) ToWIFC() (wifc string) {
+// toWIFC converts a Bitcoin private key to a Wallet Import Format string with the public key compressed flag.
+func (priv *PrivateKey) toWIFC() (wifc string) {
 	/* See https://en.bitcoin.it/wiki/Wallet_import_format */
 
 	/* Convert the private key to bytes */
-	priv_bytes := priv.ToBytes()
+	priv_bytes := priv.toBytes()
 
 	/* Append 0x01 to tell Bitcoin wallet to use compressed public keys */
 	priv_bytes = append(priv_bytes, []byte{0x01}...)
@@ -356,8 +356,8 @@ func (priv *PrivateKey) ToWIFC() (wifc string) {
 	return wifc
 }
 
-// FromWIF converts a Wallet Import Format string to a Bitcoin private key and derives the corresponding Bitcoin public key.
-func (priv *PrivateKey) FromWIF(wif string) (err error) {
+// fromWIF converts a Wallet Import Format string to a Bitcoin private key and derives the corresponding Bitcoin public key.
+func (priv *PrivateKey) fromWIF(wif string) (err error) {
 	/* See https://en.bitcoin.it/wiki/Wallet_import_format */
 
 	/* Base58 Check Decode the WIF string */
@@ -380,7 +380,7 @@ func (priv *PrivateKey) FromWIF(wif string) (err error) {
 	}
 
 	/* Convert from bytes to a private key */
-	err = priv.FromBytes(priv_bytes)
+	err = priv.fromBytes(priv_bytes)
 	if err != nil {
 		return err
 	}
@@ -395,8 +395,8 @@ func (priv *PrivateKey) FromWIF(wif string) (err error) {
 /* Bitcoin Public Key Import/Export */
 /******************************************************************************/
 
-// ToBytes converts a Bitcoin public key to a 33-byte byte slice with point compression.
-func (pub *PublicKey) ToBytes() (b []byte) {
+// toBytes converts a Bitcoin public key to a 33-byte byte slice with point compression.
+func (pub *PublicKey) toBytes() (b []byte) {
 	/* See Certicom SEC1 2.3.3, pg. 10 */
 
 	x := pub.X.Bytes()
@@ -412,8 +412,8 @@ func (pub *PublicKey) ToBytes() (b []byte) {
 	return append([]byte{0x03}, padded_x...)
 }
 
-// ToBytesUncompressed converts a Bitcoin public key to a 65-byte byte slice without point compression.
-func (pub *PublicKey) ToBytesUncompressed() (b []byte) {
+// toBytesUncompressed converts a Bitcoin public key to a 65-byte byte slice without point compression.
+func (pub *PublicKey) toBytesUncompressed() (b []byte) {
 	/* See Certicom SEC1 2.3.3, pg. 10 */
 
 	x := pub.X.Bytes()
@@ -427,8 +427,8 @@ func (pub *PublicKey) ToBytesUncompressed() (b []byte) {
 	return append([]byte{0x04}, append(padded_x, padded_y...)...)
 }
 
-// FromBytes converts a byte slice (either with or without point compression) to a Bitcoin public key.
-func (pub *PublicKey) FromBytes(b []byte) (err error) {
+// fromBytes converts a byte slice (either with or without point compression) to a Bitcoin public key.
+func (pub *PublicKey) fromBytes(b []byte) (err error) {
 	/* See Certicom SEC1 2.3.4, pg. 11 */
 
 	if len(b) < 33 {
@@ -472,12 +472,12 @@ func (pub *PublicKey) FromBytes(b []byte) (err error) {
 	return nil
 }
 
-// ToAddress converts a Bitcoin public key to a compressed Bitcoin address string.
-func (pub *PublicKey) ToAddress() (address string) {
+// toAddress converts a Bitcoin public key to a compressed Bitcoin address string.
+func (pub *PublicKey) toAddress() (address string) {
 	/* See https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses */
 
 	/* Convert the public key to bytes */
-	pub_bytes := pub.ToBytes()
+	pub_bytes := pub.toBytes()
 
 	/* SHA256 Hash */
 	sha256_h := sha256.New()
@@ -497,12 +497,12 @@ func (pub *PublicKey) ToAddress() (address string) {
 	return address
 }
 
-// ToAddressUncompressed converts a Bitcoin public key to an uncompressed Bitcoin address string.
-func (pub *PublicKey) ToAddressUncompressed() (address string) {
+// toAddressUncompressed converts a Bitcoin public key to an uncompressed Bitcoin address string.
+func (pub *PublicKey) toAddressUncompressed() (address string) {
 	/* See https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses */
 
 	/* Convert the public key to bytes */
-	pub_bytes := pub.ToBytesUncompressed()
+	pub_bytes := pub.toBytesUncompressed()
 
 	/* SHA256 Hash */
 	sha256_h := sha256.New()

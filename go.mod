@@ -3,9 +3,8 @@ module github.com/vsergeev/btckeygenie
 go 1.14
 
 require (
-	github.com/blockcypher/gobcy v2.0.1+incompatible
-	github.com/btcsuite/btcd v0.21.0-beta // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-resty/resty/v2 v2.5.0
 	github.com/rs/zerolog v1.20.0

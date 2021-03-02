@@ -59,6 +59,7 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx, _ := context.WithCancel(context.Background())
+	// TODO: cancel
 	s.watchAddress(ctx, btckp.AddressCompressed)
 
 	qrData := fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, meta)
