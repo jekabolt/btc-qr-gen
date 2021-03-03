@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/gorilla/websocket"
 	"github.com/vsergeev/btckeygenie/request"
 	bolt "go.etcd.io/bbolt"
 )
@@ -14,7 +15,8 @@ type Server struct {
 	*Config
 	*request.HTTPClient
 	*bolt.DB
-	pool *Keys
+	btcWsApi *websocket.Conn
+	pool     *Keys
 }
 
 type Config struct {
@@ -37,6 +39,10 @@ func (c *Config) InitServer() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("InitServer:bolt.Open [%v]", err.Error())
 	}
+	btcws, err := getWsDialer()
+	if err != nil {
+		return nil, fmt.Errorf("InitServer:GetWsDialer [%v]", err.Error())
+	}
 
 	r := resty.New()
 	s := &Server{
@@ -47,6 +53,7 @@ func (c *Config) InitServer() (*Server, error) {
 			m:     map[string]*KeyPair{},
 			Mutex: &sync.Mutex{},
 		},
+		btcWsApi: btcws,
 	}
 	return s, nil
 }
