@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/vsergeev/btckeygenie/request"
@@ -42,6 +43,10 @@ func (c *Config) InitServer() (*Server, error) {
 		Config:     c,
 		DB:         db,
 		HTTPClient: request.NewHTTPClient(r),
+		pool: &Keys{
+			m:     map[string]*KeyPair{},
+			Mutex: &sync.Mutex{},
+		},
 	}
 	return s, nil
 }
