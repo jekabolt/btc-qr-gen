@@ -30,37 +30,33 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	meta := chi.URLParam(r, "meta")
 	amount := chi.URLParam(r, "amount")
+
 	pi, err := decodePaymentInfo(meta)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:decodePaymentInfo:[%s]", err.Error())
 		writeBadRequest(w)
 	}
+
 	btckp, err := btckey.GenerateBTCKeyPair()
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:GenerateBTCKeyPair:[%s]", err.Error())
 		writeInternalServerError(w)
 	}
-	err = s.updateDB([]byte(s.KeysBucket),
-		[]byte(btckp.AddressCompressed),
-		&KeyPair{
-			BTCKeyPair:     btckp,
-			InitiationTime: time.Now().Unix(),
-			Payed:          false,
-		})
-	if err != nil {
-		log.Error().Err(err).Msgf("getAddressQrCode:addKeyPair:[%s]", err.Error())
 
-	}
-	err = s.updateDB([]byte(s.OrdersBucket),
-		[]byte(btckp.AddressCompressed), pi)
+	s.storeOrderInfo(btckp, pi)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:addPaymentInfo:[%s]", err.Error())
 		writeInternalServerError(w)
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
-	// TODO: cancel
+	ctx, cancel := context.WithCancel(context.Background())
 	s.watchAddress(ctx, btckp.AddressCompressed)
+	s.pool.add(&KeyPair{
+		BTCKeyPair:     btckp,
+		InitiationTime: time.Now().Unix(),
+		Payed:          false,
+		cancel:         cancel,
+	})
 
 	qrData := fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, meta)
 	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)

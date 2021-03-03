@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/vsergeev/btckeygenie/btckey"
 	bolt "go.etcd.io/bbolt"
@@ -10,8 +12,9 @@ import (
 
 type KeyPair struct {
 	*btckey.BTCKeyPair
-	InitiationTime int64 `json:"initiationTime,omitempty"`
-	Payed          bool  `json:"payed,omitempty"`
+	InitiationTime int64              `json:"initiationTime,omitempty"`
+	Payed          bool               `json:"payed,omitempty"`
+	cancel         context.CancelFunc `json:"-"`
 }
 
 func (s *Server) updateDB(bucketName, key []byte, value interface{}) error {
@@ -65,4 +68,23 @@ func (s *Server) deleteKey(bucketName, keyName []byte) error {
 		err := b.Delete(keyName)
 		return err
 	})
+}
+
+func (s *Server) storeOrderInfo(kp *btckey.BTCKeyPair, pi *PaymentInfo) error {
+	err := s.updateDB([]byte(s.KeysBucket),
+		[]byte(kp.AddressCompressed),
+		&KeyPair{
+			BTCKeyPair:     kp,
+			InitiationTime: time.Now().Unix(),
+			Payed:          false,
+		})
+	if err != nil {
+		return fmt.Errorf("storeOrderInfo:s.updateDB:KeysBucket")
+	}
+	err = s.updateDB([]byte(s.OrdersBucket),
+		[]byte(kp.AddressCompressed), pi)
+	if err != nil {
+		return fmt.Errorf("storeOrderInfo:s.updateDB:OrdersBucket")
+	}
+	return nil
 }
