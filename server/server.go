@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
+	"github.com/vsergeev/btckeygenie/btckey"
 	"github.com/vsergeev/btckeygenie/request"
 	bolt "go.etcd.io/bbolt"
 )
@@ -15,8 +17,10 @@ type Server struct {
 	*Config
 	*request.HTTPClient
 	*bolt.DB
-	btcWsApi *websocket.Conn
-	pool     *Keys
+	btcWsApi      *websocket.Conn
+	pool          *Keys
+	paymentsInfo  *PaymentsInfo
+	btcTxUpdateCh <-chan BTCTxApiEvent
 }
 
 type Config struct {
@@ -50,10 +54,17 @@ func (c *Config) InitServer() (*Server, error) {
 		DB:         db,
 		HTTPClient: request.NewHTTPClient(r),
 		pool: &Keys{
-			m:     map[string]*KeyPair{},
+			m:     map[string]btckey.BTCKeyPair{},
+			Mutex: &sync.Mutex{},
+		},
+		paymentsInfo: &PaymentsInfo{
+			m:     map[string]PaymentInfo{},
 			Mutex: &sync.Mutex{},
 		},
 		btcWsApi: btcws,
 	}
+	btcCh := s.getBtcTxUpdateChan(context.Background())
+	s.btcTxUpdateCh = btcCh
+	go s.processIncoming()
 	return s, nil
 }

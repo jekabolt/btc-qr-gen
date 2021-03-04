@@ -1,13 +1,21 @@
 package server
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/vsergeev/btckeygenie/btckey"
+)
 
 type Keys struct {
-	m map[string]*KeyPair
+	m map[string]btckey.BTCKeyPair
 	*sync.Mutex
 }
 
-func (k *Keys) add(kp *KeyPair) {
+func (k *Keys) len() int {
+	return len(k.m)
+}
+
+func (k *Keys) add(kp btckey.BTCKeyPair) {
 	k.Lock()
 	defer k.Unlock()
 	k.m[kp.AddressCompressed] = kp
@@ -19,6 +27,6 @@ func (k *Keys) delete(address string) {
 	delete(k.m, address)
 }
 
-func (k *Keys) get(address string) *KeyPair {
+func (k *Keys) get(address string) btckey.BTCKeyPair {
 	return k.m[address]
 }
