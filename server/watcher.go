@@ -50,6 +50,15 @@ func getWsDialer() (*websocket.Conn, error) {
 	log.Debug().Msgf("GetWsDialer:connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("getWsDialer:Dial:[%v]", err.Error())
+	}
+
+	//init
+	// err = c.WriteJSON(`{"op":"ping"}`)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("getWsDialer:WriteJSON:[%v]", err.Error())
+	// }
 	return c, err
 }
 
@@ -78,11 +87,13 @@ func (s *Server) getBtcTxUpdateChan(ctx context.Context) <-chan BTCTxApiEvent {
 }
 
 func (s *Server) subToAddress(address string) error {
-	return s.btcWsApi.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"op":"addr_sub", "addr":"%s"}`, address)))
+	return s.btcWsApi.WriteMessage(websocket.TextMessage,
+		[]byte(fmt.Sprintf(`{"op":"addr_sub", "addr":"%s"}`, address)))
 }
 
 func (s *Server) unsubFromAddress(address string) error {
-	return s.btcWsApi.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"op":"addr_unsub", "addr":"%s"}`, address)))
+	return s.btcWsApi.WriteMessage(websocket.TextMessage,
+		[]byte(fmt.Sprintf(`{"op":"addr_unsub", "addr":"%s"}`, address)))
 }
 
 func (s *Server) watchAddress(ctx context.Context, address string) {
