@@ -15,7 +15,7 @@ $ make build
 To build project run:
 
 ```shell script
-$ make build 
+$ make run 
 ```
 
 ## API
