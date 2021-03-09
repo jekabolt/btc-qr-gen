@@ -27,6 +27,7 @@ type Config struct {
 	Port         string `env:"SERVER_PORT" envDefault:"8080"`
 	XAPIKey      string `env:"X_API_KEY" envDefault:"kek"`
 	AddressTTL   int    `env:"ADDRESS_TTL" envDefault:"15"` // min
+	PingWsAPI    int    `env:"PING_WS_API" envDefault:"10"` // sec
 	DBPath       string `env:"DB_PATH" envDefault:"payments.db"`
 	KeysBucket   string `env:"KEYS_BUCKET" envDefault:"keys"`
 	OrdersBucket string `env:"ORDERS_BUCKET" envDefault:"orders"`
@@ -65,6 +66,7 @@ func (c *Config) InitServer() (*Server, error) {
 	}
 	btcCh := s.getBtcTxUpdateChan(context.Background())
 	s.btcTxUpdateCh = btcCh
+	// s.subToUnconfirmed()
 	go s.processIncoming()
 	return s, nil
 }

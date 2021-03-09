@@ -27,18 +27,29 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	meta := chi.URLParam(r, "meta")
 	amount := chi.URLParam(r, "amount")
+	var err error
+
+	amount, err = convertAmount(amount)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:convertAmount:[%s]", err.Error())
+		writeBadRequest(w)
+		return
+	}
+	log.Debug().Msgf("amount [%v]", amount)
 
 	pi, err := decodePaymentInfo(meta)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:decodePaymentInfo:[%s]", err.Error())
 		writeBadRequest(w)
+		return
 	}
-	s.paymentsInfo.add(*pi)
+	s.paymentsInfo.add(pi)
 
 	btckp, err := s.getAddress()
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:addPaymentInfo:[%s]", err.Error())
 		writeInternalServerError(w)
+		return
 	}
 	s.watchAddress(btckp)
 
@@ -47,6 +58,7 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:qrcode.Encode:[%s]", err.Error())
 		writeInternalServerError(w)
+		return
 	}
 	err = writeImage(w, png)
 	if err != nil {

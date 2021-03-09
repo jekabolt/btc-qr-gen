@@ -84,4 +84,12 @@ func (s *Server) storeBTCKeyPair(kp *btckey.BTCKeyPair) error {
 	return nil
 }
 
-// pi *PaymentInfo
+func (s *Server) storePaymentInfo(pi *PaymentInfo) error {
+	err := s.updateDB([]byte(s.OrdersBucket),
+		[]byte(pi.BTCAddress),
+		pi)
+	if err != nil {
+		return fmt.Errorf("storeOrderInfo:s.updateDB:storeBTCKeyPair[%v]", err.Error())
+	}
+	return nil
+}

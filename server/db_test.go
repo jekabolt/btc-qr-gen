@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -12,10 +11,10 @@ import (
 
 func TestDB(t *testing.T) {
 
-	bss, err := json.Marshal(PaymentInfo{})
+	// bss, err := json.Marshal(PaymentInfo{})
 
-	fmt.Printf("%s", bss)
-	return
+	// fmt.Printf("%s", bss)
+	// return
 
 	btckp, err := btckey.GenerateBTCKeyPair()
 	if err != nil {

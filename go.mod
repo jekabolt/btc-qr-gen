@@ -3,6 +3,7 @@ module github.com/vsergeev/btckeygenie
 go 1.14
 
 require (
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible

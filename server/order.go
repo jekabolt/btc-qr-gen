@@ -10,6 +10,7 @@ import (
 type PaymentInfo struct {
 	OrderId     string `json:"orderId"`
 	BTCAddress  string `json:"btcAddress"`
+	Txid        string `json:"txid"`
 	Country     string `json:"country"`
 	City        string `json:"city"`
 	Address     string `json:"address"`
@@ -30,10 +31,10 @@ func (pi *PaymentsInfo) len() int {
 	return len(pi.m)
 }
 
-func (pi *PaymentsInfo) add(info PaymentInfo) {
+func (pi *PaymentsInfo) add(info *PaymentInfo) {
 	pi.Lock()
 	defer pi.Unlock()
-	pi.m[info.BTCAddress] = info
+	pi.m[info.BTCAddress] = *info
 }
 
 func (pi *PaymentsInfo) delete(address string) {
@@ -42,8 +43,9 @@ func (pi *PaymentsInfo) delete(address string) {
 	delete(pi.m, address)
 }
 
-func (pi *PaymentsInfo) get(address string) PaymentInfo {
-	return pi.m[address]
+func (pi *PaymentsInfo) get(address string) (*PaymentInfo, bool) {
+	pinfo, ok := pi.m[address]
+	return &pinfo, ok
 }
 
 func decodePaymentInfo(paymentInfoB64 string) (*PaymentInfo, error) {
