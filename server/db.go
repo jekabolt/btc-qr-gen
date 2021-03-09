@@ -70,7 +70,7 @@ func (s *Server) deleteKey(bucketName, keyName []byte) error {
 	})
 }
 
-func (s *Server) storeOrderInfo(kp *btckey.BTCKeyPair, pi *PaymentInfo) error {
+func (s *Server) storeBTCKeyPair(kp *btckey.BTCKeyPair) error {
 	err := s.updateDB([]byte(s.KeysBucket),
 		[]byte(kp.AddressCompressed),
 		&KeyPair{
@@ -79,12 +79,17 @@ func (s *Server) storeOrderInfo(kp *btckey.BTCKeyPair, pi *PaymentInfo) error {
 			Payed:          false,
 		})
 	if err != nil {
-		return fmt.Errorf("storeOrderInfo:s.updateDB:KeysBucket")
+		return fmt.Errorf("storeOrderInfo:s.updateDB:storeBTCKeyPair[%v]", err.Error())
 	}
-	err = s.updateDB([]byte(s.OrdersBucket),
-		[]byte(kp.AddressCompressed), pi)
+	return nil
+}
+
+func (s *Server) storePaymentInfo(pi *PaymentInfo) error {
+	err := s.updateDB([]byte(s.OrdersBucket),
+		[]byte(pi.BTCAddress),
+		pi)
 	if err != nil {
-		return fmt.Errorf("storeOrderInfo:s.updateDB:OrdersBucket")
+		return fmt.Errorf("storeOrderInfo:s.updateDB:storeBTCKeyPair[%v]", err.Error())
 	}
 	return nil
 }

@@ -1,15 +1,12 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog/log"
 	"github.com/skip2/go-qrcode"
-	"github.com/vsergeev/btckeygenie/btckey"
 )
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -30,39 +27,38 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	meta := chi.URLParam(r, "meta")
 	amount := chi.URLParam(r, "amount")
+	var err error
+
+	amount, err = convertAmount(amount)
+	if err != nil {
+		log.Error().Err(err).Msgf("getAddressQrCode:convertAmount:[%s]", err.Error())
+		writeBadRequest(w)
+		return
+	}
+	log.Debug().Msgf("amount [%v]", amount)
 
 	pi, err := decodePaymentInfo(meta)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:decodePaymentInfo:[%s]", err.Error())
 		writeBadRequest(w)
+		return
 	}
+	s.paymentsInfo.add(pi)
 
-	btckp, err := btckey.GenerateBTCKeyPair()
-	if err != nil {
-		log.Error().Err(err).Msgf("getAddressQrCode:GenerateBTCKeyPair:[%s]", err.Error())
-		writeInternalServerError(w)
-	}
-
-	s.storeOrderInfo(btckp, pi)
+	btckp, err := s.getAddress()
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:addPaymentInfo:[%s]", err.Error())
 		writeInternalServerError(w)
+		return
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	s.watchAddress(ctx, btckp.AddressCompressed)
-	s.pool.add(&KeyPair{
-		BTCKeyPair:     btckp,
-		InitiationTime: time.Now().Unix(),
-		Payed:          false,
-		cancel:         cancel,
-	})
+	s.watchAddress(btckp)
 
 	qrData := fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, meta)
 	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:qrcode.Encode:[%s]", err.Error())
 		writeInternalServerError(w)
+		return
 	}
 	err = writeImage(w, png)
 	if err != nil {
