@@ -1,4 +1,4 @@
-package server
+package store
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/vsergeev/btckeygenie/btckey"
-	bolt "go.etcd.io/bbolt"
 )
 
 func TestDB(t *testing.T) {
@@ -20,17 +19,13 @@ func TestDB(t *testing.T) {
 	if err != nil {
 		t.Errorf("TestDB:GenerateBTCKeyPair [%v]", err.Error())
 	}
-	db, err := bolt.Open("../payments.db", 0600, nil)
+
+	db, err := InitDB("../payment.db", "keys", "orders")
 	if err != nil {
-		t.Errorf("TestDB:bolt.Open [%v]", err.Error())
+		t.Errorf("TestDB:InitDB [%v]", err.Error())
 	}
-	s := Server{
-		DB: db,
-		Config: &Config{
-			KeysBucket: "keys",
-		},
-	}
-	err = s.updateDB([]byte(s.KeysBucket),
+
+	err = db.updateDB([]byte(db.KeysBucket),
 		[]byte(btckp.AddressCompressed),
 		&KeyPair{
 			BTCKeyPair:     btckp,
@@ -41,18 +36,18 @@ func TestDB(t *testing.T) {
 		t.Errorf("TestDB:updateDB [%v]", err.Error())
 	}
 
-	bs, err := s.queryDB([]byte(s.KeysBucket), []byte(btckp.AddressCompressed))
+	bs, err := db.queryDB([]byte(db.KeysBucket), []byte(btckp.AddressCompressed))
 	if err != nil {
 		t.Errorf("TestDB:queryDB [%v]", err.Error())
 	}
 	fmt.Printf("1 =%s\n\n\n", bs)
 
-	err = s.deleteKey([]byte(s.KeysBucket), []byte(btckp.AddressCompressed))
+	err = db.deleteKey([]byte(db.KeysBucket), []byte(btckp.AddressCompressed))
 	if err != nil {
 		t.Errorf("TestDB:deleteKey [%v]", err.Error())
 	}
 
-	bs, err = s.queryDB([]byte(s.KeysBucket), []byte(btckp.AddressCompressed))
+	bs, err = db.queryDB([]byte(db.KeysBucket), []byte(btckp.AddressCompressed))
 	if err == nil {
 		t.Errorf("TestDB:queryDB should be not found")
 	}

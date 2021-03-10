@@ -7,31 +7,31 @@ import (
 	"sync"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/websocket"
 	"github.com/vsergeev/btckeygenie/btckey"
+	"github.com/vsergeev/btckeygenie/order"
 	"github.com/vsergeev/btckeygenie/request"
-	bolt "go.etcd.io/bbolt"
+	"github.com/vsergeev/btckeygenie/store"
+	"github.com/vsergeev/btckeygenie/watcher"
 )
 
 type Server struct {
 	*Config
 	*request.HTTPClient
-	*bolt.DB
-	btcWsApi      *websocket.Conn
-	pool          *Keys
-	paymentsInfo  *PaymentsInfo
-	btcTxUpdateCh <-chan BTCTxApiEvent
+	*store.DB
+	*watcher.Watcher
+	pool         *Keys
+	paymentsInfo *order.PaymentsInfo
 }
 
 type Config struct {
-	Port         string `env:"SERVER_PORT" envDefault:"8080"`
-	XAPIKey      string `env:"X_API_KEY" envDefault:"kek"`
-	AddressTTL   int    `env:"ADDRESS_TTL" envDefault:"15"` // min
-	PingWsAPI    int    `env:"PING_WS_API" envDefault:"10"` // sec
-	DBPath       string `env:"DB_PATH" envDefault:"payments.db"`
-	KeysBucket   string `env:"KEYS_BUCKET" envDefault:"keys"`
-	OrdersBucket string `env:"ORDERS_BUCKET" envDefault:"orders"`
-	Debug        bool   `env:"DEBUG" envDefault:"true"`
+	Port           string `env:"SERVER_PORT" envDefault:"8080"`
+	XAPIKey        string `env:"X_API_KEY" envDefault:"kek"`
+	AddressTTL     int    `env:"ADDRESS_TTL" envDefault:"15"`      // min
+	PingIntervalWS int    `env:"PING_INTERVAL_WS" envDefault:"10"` // sec
+	DBPath         string `env:"DB_PATH" envDefault:"payments.db"`
+	KeysBucket     string `env:"KEYS_BUCKET" envDefault:"keys"`
+	OrdersBucket   string `env:"ORDERS_BUCKET" envDefault:"orders"`
+	Debug          bool   `env:"DEBUG" envDefault:"true"`
 }
 
 func (c *Config) String() string {
@@ -40,11 +40,11 @@ func (c *Config) String() string {
 }
 
 func (c *Config) InitServer() (*Server, error) {
-	db, err := bolt.Open(c.DBPath, 0600, nil)
+	db, err := store.InitDB(c.DBPath, c.KeysBucket, c.OrdersBucket)
 	if err != nil {
-		return nil, fmt.Errorf("InitServer:bolt.Open [%v]", err.Error())
+		return nil, fmt.Errorf("InitServer:GetWsDialer [%v]", err.Error())
 	}
-	btcws, err := getWsDialer()
+	w, err := watcher.GetWatcher(context.Background(), c.PingIntervalWS)
 	if err != nil {
 		return nil, fmt.Errorf("InitServer:GetWsDialer [%v]", err.Error())
 	}
@@ -58,15 +58,10 @@ func (c *Config) InitServer() (*Server, error) {
 			m:     map[string]btckey.BTCKeyPair{},
 			Mutex: &sync.Mutex{},
 		},
-		paymentsInfo: &PaymentsInfo{
-			m:     map[string]PaymentInfo{},
-			Mutex: &sync.Mutex{},
-		},
-		btcWsApi: btcws,
+		paymentsInfo: order.NewPaymentsInfo(),
+		Watcher:      w,
 	}
-	btcCh := s.getBtcTxUpdateChan(context.Background())
-	s.btcTxUpdateCh = btcCh
-	// s.subToUnconfirmed()
+	// s.SubToUnconfirmed()
 	go s.processIncoming()
 	return s, nil
 }

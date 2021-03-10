@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
 	"github.com/rs/zerolog/log"
 	"github.com/skip2/go-qrcode"
+	"github.com/vsergeev/btckeygenie/order"
 )
 
 func (s *Server) healthCheck(w http.ResponseWriter, r *http.Request) {
@@ -37,13 +39,13 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug().Msgf("amount [%v]", amount)
 
-	pi, err := decodePaymentInfo(meta)
+	pi, err := order.DecodePaymentInfo(meta)
 	if err != nil {
 		log.Error().Err(err).Msgf("getAddressQrCode:decodePaymentInfo:[%s]", err.Error())
 		writeBadRequest(w)
 		return
 	}
-	s.paymentsInfo.add(pi)
+	s.paymentsInfo.Add(pi)
 
 	btckp, err := s.getAddress()
 	if err != nil {
@@ -51,7 +53,7 @@ func (s *Server) getAddressQrCode(w http.ResponseWriter, r *http.Request) {
 		writeInternalServerError(w)
 		return
 	}
-	s.watchAddress(btckp)
+	s.watchAddress(context.Background(), btckp)
 
 	qrData := fmt.Sprintf("bitcoin:%s?amount=%s&message=%s", btckp.AddressCompressed, amount, meta)
 	png, err := qrcode.Encode(qrData, qrcode.Medium, 256)
